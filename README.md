@@ -1,11 +1,20 @@
-# Boarddy 🚀
+<p align="center">
+  <img src=".github/assets/logo.png" alt="Boarddy Logo" width="160" />
+</p>
 
-[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE.md)
-[![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)](#installation)
-[![Framework: Tauri v2](https://img.shields.io/badge/Framework-Tauri%20v2-orange.svg)](#development--building)
-[![Language: Rust & TypeScript](https://img.shields.io/badge/Language-Rust%20%26%20TypeScript-purple.svg)](#development--building)
+<h1 align="center">Boarddy</h1>
 
-> **The Input & Memory Layer for Your Computer.** Your clipboard remembers. Your keyboard learns.
+<p align="center">
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-Proprietary-red.svg" alt="License: Proprietary" /></a>
+  <a href="#installation"><img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg" alt="Platform: Windows | macOS | Linux" /></a>
+  <a href="#development--building"><img src="https://img.shields.io/badge/Framework-Tauri%20v2-orange.svg" alt="Framework: Tauri v2" /></a>
+  <a href="#development--building"><img src="https://img.shields.io/badge/Language-Rust%20%26%20TypeScript-purple.svg" alt="Language: Rust & TypeScript" /></a>
+</p>
+
+<p align="center">
+  <b>The Input & Memory Layer for Your Computer.</b><br />
+  Your clipboard remembers. Your keyboard learns.
+</p>
 
 Boarddy is a lightweight, local-first desktop application designed to supercharge your typing speed, automate repetitive entries, and capture your clipboard history seamlessly. It bridges the gap between your keyboard inputs and the operating system, creating a highly responsive and personalized productivity environment.
 
