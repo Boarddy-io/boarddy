@@ -1,0 +1,146 @@
+name: Cross-Platform Release Automation
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Initialize GitHub Release
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create_release.outputs.id }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      html_url: ${{ steps.create_release.outputs.html_url }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create Release Draft
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          prerelease: false
+          name: Boarddy v${{ github.ref_name }}
+          body: |
+            ## Boarddy v${{ github.ref_name }}
+            
+            Welcome to the official release of Boarddy, the Input & Memory Layer for your computer!
+            
+            ### Changelog
+            Please refer to the commit history or discussions for detailed changes.
+            
+            ### Verification Checksums
+            SHA256 Checksums will be generated and uploaded automatically for each distribution package.
+          fail_on_unmatched_files: false
+
+  build-and-upload:
+    name: Build & Upload (${{ matrix.platform.name }})
+    needs: create-release
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: Windows (x64)
+            os: windows-latest
+            args: ""
+          - name: macOS Intel (x64)
+            os: macos-13
+            args: "--target x86_64-apple-darwin"
+          - name: macOS Apple Silicon (arm64)
+            os: macos-latest
+            args: "--target aarch64-apple-darwin"
+          - name: Linux (x64)
+            os: ubuntu-22.04
+            args: ""
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.os == 'macos-13' && 'x86_64-apple-darwin' || matrix.platform.os == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install Linux Dependencies (Ubuntu)
+        if: matrix.platform.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev libayatana-appindicator3-dev librsvg2-dev patchelf rpm
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Build and Package Tauri App
+        uses: tauri-apps/tauri-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v${{ github.ref_name }}
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          args: ${{ matrix.platform.args }}
+
+      - name: Generate SHA256 Checksums (Windows)
+        if: matrix.platform.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path src-tauri/target/release/bundle/msi/*.msi, src-tauri/target/release/bundle/nsis/*.exe
+          foreach ($file in $files) {
+            $hash = (Get-FileHash -Path $file.FullName -Algorithm SHA256).Hash.ToLower()
+            Out-File -FilePath "$($file.FullName).sha256" -InputObject "$hash  $($file.Name)" -Encoding utf8
+          }
+
+      - name: Generate SHA256 Checksums (macOS)
+        if: startsWith(matrix.platform.os, 'macos')
+        shell: bash
+        run: |
+          for f in src-tauri/target/*/release/bundle/dmg/*.dmg; do
+            if [ -f "$f" ]; then
+              dir=$(dirname "$f")
+              name=$(basename "$f")
+              (cd "$dir" && shasum -a 256 "$name" > "${name}.sha256")
+            fi
+          done
+
+      - name: Generate SHA256 Checksums (Linux)
+        if: matrix.platform.os == 'ubuntu-22.04'
+        shell: bash
+        run: |
+          for f in src-tauri/target/release/bundle/appimage/*.AppImage src-tauri/target/release/bundle/deb/*.deb src-tauri/target/release/bundle/rpm/*.rpm; do
+            if [ -f "$f" ]; then
+              dir=$(dirname "$f")
+              name=$(basename "$f")
+              (cd "$dir" && sha256sum "$name" > "${name}.sha256")
+            fi
+          done
+
+      - name: Upload SHA256 Checksum Files
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            src-tauri/target/release/bundle/msi/*.sha256
+            src-tauri/target/release/bundle/nsis/*.sha256
+            src-tauri/target/*/release/bundle/dmg/*.sha256
+            src-tauri/target/release/bundle/appimage/*.sha256
+            src-tauri/target/release/bundle/deb/*.sha256
+            src-tauri/target/release/bundle/rpm/*.sha256
+          tag_name: v${{ github.ref_name }}
+          fail_on_unmatched_files: false
