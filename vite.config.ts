@@ -1,14 +1,23 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import path from "path";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
+const isWebBuild = process.env.VITE_WEB_BUILD === "true";
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
   base: "./",
+  resolve: isWebBuild ? {
+    alias: {
+      "@tauri-apps/api/core": path.resolve(__dirname, "./src/tauri-mock.ts"),
+      "@tauri-apps/api/webviewWindow": path.resolve(__dirname, "./src/tauri-mock.ts"),
+      "@tauri-apps/api/event": path.resolve(__dirname, "./src/tauri-mock.ts"),
+    }
+  } : undefined,
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

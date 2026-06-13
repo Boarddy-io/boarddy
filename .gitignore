@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tauri build artifacts and installers
+*.exe
+*.msi
+*.dmg
+*.deb
+*.rpm
