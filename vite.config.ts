@@ -6,11 +6,15 @@ import path from "path";
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 const isWebBuild = process.env.VITE_WEB_BUILD === "true";
+console.log("--- Vite Config Env Info ---");
+console.log("process.env.VITE_WEB_BUILD =", process.env.VITE_WEB_BUILD);
+console.log("isWebBuild =", isWebBuild);
+console.log("----------------------------");
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
-  base: "./",
+  base: isWebBuild ? "/boarddy/" : "./",
   resolve: isWebBuild ? {
     alias: {
       "@tauri-apps/api/core": path.resolve(__dirname, "./src/tauri-mock.ts"),
