@@ -1,0 +1,2271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- SEO Meta Tags -->
+  <title>Boarddy — The Input & Memory Layer for Your Computer</title>
+  <meta name="description" content="Boarddy combines clipboard memory, quick paste, autocomplete, autocorrect, notes, and keyboard productivity tools into a lightweight, local-first desktop experience.">
+  <meta name="keywords" content="clipboard manager, clipboard history, autocomplete, autocorrect, personal dictionary, developer tools, productivity, tauri, rust, windows, local-first">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://boarddy-io.github.io/boarddy/">
+  <meta property="og:title" content="Boarddy — The Input & Memory Layer for Your Computer">
+  <meta property="og:description" content="Your clipboard remembers. Your keyboard learns. Your computer finally stops forgetting.">
+  <meta property="og:image" content="./assets/logo.png">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://boarddy-io.github.io/boarddy/">
+  <meta property="twitter:title" content="Boarddy — The Input & Memory Layer for Your Computer">
+  <meta property="twitter:description" content="Your clipboard remembers. Your keyboard learns. Your computer finally stops forgetting.">
+  <meta property="twitter:image" content="./assets/logo.png">
+
+  <!-- Google Fonts (Inter & JetBrains Mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* CSS custom properties / Design Tokens */
+    :root {
+      --bg-dark: #07080e;
+      --bg-card: rgba(13, 16, 28, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --primary: #38bdf8; /* Sky Blue */
+      --primary-hover: #0ea5e9;
+      --primary-glow: rgba(56, 189, 248, 0.12);
+      --accent-glow: rgba(139, 92, 246, 0.12); /* Purple */
+      --purple: #8b5cf6;
+      --pink: #ec4899;
+      --text-main: #f8fafc;
+      --text-muted: #cbd5e1;
+      --text-dark: #64748b;
+      --success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      overflow-x: hidden;
+      line-height: 1.65;
+    }
+
+    /* Ambient background glow grids */
+    .ambient-glows {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1100px;
+      z-index: -1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .glow-1 {
+      position: absolute;
+      top: -10%;
+      left: 15%;
+      width: 650px;
+      height: 650px;
+      background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+      filter: blur(90px);
+      animation: pulse 9s infinite alternate;
+    }
+
+    .glow-2 {
+      position: absolute;
+      top: 30%;
+      right: 10%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      filter: blur(90px);
+      animation: pulse 13s infinite alternate-reverse;
+    }
+
+    @keyframes pulse {
+      0% { transform: translateY(0) scale(1); }
+      100% { transform: translateY(40px) scale(1.1); }
+    }
+
+    /* Header / Navbar */
+    header {
+      border-bottom: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background-color: rgba(7, 8, 14, 0.8);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+
+    .logo-img {
+      width: 30px;
+      height: 30px;
+      object-fit: contain;
+    }
+
+    .logo-text {
+      font-weight: 800;
+      font-size: 1.35rem;
+      letter-spacing: -0.025em;
+      color: var(--text-main);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+      list-style: none;
+    }
+
+    .nav-link a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .nav-link a:hover {
+      color: var(--text-main);
+    }
+
+    .btn-github {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+      padding: 0.5rem 1.1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .btn-github:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    /* Main Hero Area */
+    .hero {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 6.5rem 2rem 5rem;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 4.5rem;
+      align-items: center;
+    }
+
+    @media (max-width: 960px) {
+      .hero {
+        grid-template-columns: 1fr;
+        padding-top: 4.5rem;
+        gap: 3.5rem;
+        text-align: center;
+      }
+    }
+
+    .hero-tagline {
+      display: inline-block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--primary);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-title {
+      font-size: 3.25rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-title span {
+      background: linear-gradient(135deg, #38bdf8, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 960px) {
+      .hero-bullets {
+        align-items: center;
+      }
+    }
+
+    .hero-bullet-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .hero-bullet-item::before {
+      content: "•";
+      color: var(--primary);
+      font-size: 1.5rem;
+    }
+
+    .hero-desc {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      margin-bottom: 2.25rem;
+      max-width: 600px;
+    }
+
+    @media (max-width: 960px) {
+      .hero-desc {
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
+
+    .hero-pitch-bold {
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 1.75rem;
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+    }
+
+    /* Installer Command Box */
+    .install-box {
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+      max-width: 100%;
+    }
+
+    .install-command {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--text-main);
+    }
+
+    .btn-copy {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dark);
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-copy:hover {
+      color: var(--text-main);
+    }
+
+    .copied-msg {
+      color: var(--success);
+      font-size: 0.8rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 960px) {
+      .hero-buttons {
+        justify-content: center;
+      }
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #07080e;
+      padding: 0.85rem 1.85rem;
+      border-radius: 6px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: #7dd3fc;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(56, 189, 248, 0.35);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.85rem 1.85rem;
+      border-radius: 6px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Terminal Simulator Dashboard */
+    .app-simulator {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), 0 0 40px var(--primary-glow);
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      display: flex;
+      flex-direction: column;
+      height: 480px;
+    }
+
+    .sim-header {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sim-dots {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+
+    .sim-title {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-dark);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .sim-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      background: #090a12;
+    }
+
+    .sim-sidebar {
+      width: 190px;
+      background: rgba(0, 0, 0, 0.25);
+      border-right: 1px solid var(--border-color);
+      padding: 1.25rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      flex-shrink: 0;
+    }
+
+    .sim-nav-btn {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text-dark);
+      padding: 0.55rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.15s ease;
+    }
+
+    .sim-nav-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .sim-nav-btn.active {
+      color: var(--primary);
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+    }
+
+    .sim-pane {
+      flex: 1;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sim-pane-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sim-pane-desc {
+      font-size: 0.78rem;
+      color: var(--text-dark);
+      margin-bottom: 1.25rem;
+      line-height: 1.4;
+    }
+
+    .sim-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .sim-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 6px;
+      padding: 0.7rem 0.9rem;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s;
+    }
+
+    .sim-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .sim-item-content {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--primary);
+      word-break: break-all;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      max-width: 80%;
+    }
+
+    .sim-item-meta {
+      font-size: 0.68rem;
+      color: var(--text-dark);
+      margin-top: 0.15rem;
+    }
+
+    .btn-sim-action {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-sim-action:hover {
+      background: var(--primary);
+      color: #07080e;
+      border-color: var(--primary);
+    }
+
+    .sim-search-bar {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.78rem;
+      color: var(--text-main);
+      width: 100%;
+      margin-bottom: 0.85rem;
+      outline: none;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .sim-search-bar:focus {
+      border-color: var(--primary);
+    }
+
+    /* PKS Specific simulation styles */
+    .pks-simulator {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .pks-input-block {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+    }
+
+    .cursor-blink {
+      width: 8px;
+      height: 1.1rem;
+      background-color: var(--primary);
+      animation: blink 0.8s infinite;
+      display: inline-block;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+
+    .pks-suggestions {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+      width: 260px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .pks-suggestion-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.55rem 0.85rem;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: all 0.15s;
+    }
+
+    .pks-suggestion-item:last-child {
+      border-bottom: none;
+    }
+
+    .pks-suggestion-item:hover {
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .pks-sug-word {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .pks-sug-word span {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .pks-key-hint {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.15rem 0.35rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+    }
+
+    .sim-add-form {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .sim-input {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.78rem;
+      color: var(--text-main);
+      flex: 1;
+      outline: none;
+    }
+
+    .sim-input:focus {
+      border-color: var(--primary);
+    }
+
+    .sim-switch-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .sim-switch-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .sim-switch-desc {
+      font-size: 0.68rem;
+      color: var(--text-dark);
+      margin-top: 0.15rem;
+    }
+
+    .sim-toggle {
+      width: 36px;
+      height: 20px;
+      background: var(--text-dark);
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .sim-toggle.active {
+      background: var(--success);
+    }
+
+    .sim-toggle::after {
+      content: '';
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+    }
+
+    .sim-toggle.active::after {
+      transform: translateX(16px);
+    }
+
+    /* Padding blocks & general section titles */
+    .section-padding {
+      padding: 6.5rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      font-size: 2.35rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .section-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 750px;
+      margin: 0 auto 4rem;
+    }
+
+    /* Typographic problems/flow grid */
+    .hero-demo-box {
+      background: rgba(255, 255, 255, 0.01);
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .hero-demo-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 6rem 2rem;
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .hero-demo-container {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+      }
+    }
+
+    .demo-step-title {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.25;
+      margin-bottom: 1.5rem;
+    }
+
+    .demo-step-body {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    .demo-story-wrapper {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .demo-story-line {
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      border-left: 2px solid var(--text-dark);
+      padding-left: 1rem;
+      transition: all 0.3s;
+    }
+
+    .demo-story-line.active {
+      color: var(--primary);
+      border-left-color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* Problem Section */
+    .problem-section {
+      background: #090a10;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .problem-wrapper {
+      max-width: 850px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .problem-list {
+      text-align: left;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2.5rem;
+      margin: 3rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .problem-item {
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+
+    .problem-icon {
+      color: #f87171;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .problem-footer-text {
+      font-size: 0.92rem;
+      color: var(--text-dark);
+      font-style: italic;
+    }
+
+    /* Solution Block */
+    .solution-wrapper {
+      max-width: 850px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .solution-bullets-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      margin: 3.5rem 0 2.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .solution-bullets-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .solution-bullets-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .solution-bullet-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.75rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .solution-bullet-card-icon {
+      font-size: 1.75rem;
+      color: var(--primary);
+    }
+
+    .solution-bullet-card-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .solution-footer-bold {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 1.5rem;
+    }
+
+    /* Core Features Grid */
+    .features-section {
+      background: rgba(255, 255, 255, 0.01);
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .grid-features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+
+    @media (max-width: 900px) {
+      .grid-features {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid-features {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card-feature {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2.25rem 2rem;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }
+
+    .card-feature:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .card-feature-icon {
+      font-size: 1.75rem;
+      width: 46px;
+      height: 46px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+
+    .card-feature-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .card-feature-desc {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    .card-feature-desc code {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(255,255,255,0.06);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+
+    /* Keyboard First Section */
+    .keyboard-section {
+      background: radial-gradient(circle at bottom, rgba(139, 92, 246, 0.04) 0%, transparent 80%);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .keyboard-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1.5rem;
+      margin-top: 3.5rem;
+    }
+
+    @media (max-width: 960px) {
+      .keyboard-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .keyboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 400px) {
+      .keyboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .keyboard-item-card {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem 1.25rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      transition: all 0.2s;
+    }
+
+    .keyboard-item-card:hover {
+      border-color: var(--purple);
+      background: rgba(139, 92, 246, 0.02);
+    }
+
+    .keyboard-card-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    /* Future Section / Roadmap */
+    .future-section {
+      background: rgba(255, 255, 255, 0.01);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .future-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .future-grid {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+      }
+    }
+
+    .future-roadmap-box {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2.5rem;
+    }
+
+    .roadmap-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .roadmap-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .roadmap-bullet {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--purple);
+      flex-shrink: 0;
+    }
+
+    /* Developer Section */
+    .developer-section {
+      background: #090a10;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .developer-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 4.5rem;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .developer-grid {
+        grid-template-columns: 1fr;
+        gap: 3.5rem;
+      }
+    }
+
+    .dev-list-features {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    @media (max-width: 480px) {
+      .dev-list-features {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .dev-feat-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.92rem;
+      color: var(--text-muted);
+    }
+
+    .dev-feat-item::before {
+      content: "✓";
+      color: var(--purple);
+      font-weight: 800;
+    }
+
+    .dev-code-box {
+      width: 100%;
+      background: #06070a;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+    }
+
+    .dev-code-line {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .dev-code-num {
+      color: var(--text-dark);
+      text-align: right;
+      width: 20px;
+      user-select: none;
+    }
+
+    .dev-code-content {
+      color: #e2e8f0;
+    }
+
+    .dev-code-keyword { color: #f43f5e; }
+    .dev-code-function { color: #60a5fa; }
+    .dev-code-string { color: #34d399; }
+    .dev-code-comment { color: #4b5563; }
+
+    /* Performance Section */
+    .performance-section {
+      background: rgba(255, 255, 255, 0.01);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .perf-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      margin-top: 3.5rem;
+    }
+
+    @media (max-width: 900px) {
+      .perf-metrics {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .perf-metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .perf-card {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.75rem 1.5rem;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .perf-card:hover {
+      border-color: var(--primary);
+    }
+
+    .perf-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.35rem;
+    }
+
+    .perf-label {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.35rem;
+    }
+
+    .perf-desc {
+      font-size: 0.78rem;
+      color: var(--text-dark);
+      line-height: 1.4;
+    }
+
+    /* Privacy Grid */
+    .privacy-section {
+      background: #07080e;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      margin-top: 3.5rem;
+    }
+
+    @media (max-width: 900px) {
+      .privacy-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .privacy-card {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.1rem;
+    }
+
+    .privacy-icon {
+      font-size: 2rem;
+      width: 56px;
+      height: 56px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+
+    /* Social Proof Section */
+    .social-section {
+      background: rgba(255, 255, 255, 0.01);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .social-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .social-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .social-card {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 2.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1.5rem;
+      transition: all 0.2s;
+    }
+
+    .social-card:hover {
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    .social-quote {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--text-main);
+      line-height: 1.55;
+    }
+
+    .social-author {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .social-author-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #07080e;
+    }
+
+    .social-author-info {
+      font-size: 0.85rem;
+    }
+
+    .social-author-name {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .social-author-title {
+      color: var(--text-dark);
+      font-size: 0.75rem;
+    }
+
+    /* Final CTA */
+    .cta-section {
+      background: radial-gradient(circle at center, rgba(56, 189, 248, 0.08) 0%, transparent 60%);
+      padding: 7.5rem 2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .cta-container {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.75rem;
+    }
+
+    .cta-title {
+      font-size: 3.25rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+
+    .cta-title span {
+      background: linear-gradient(135deg, #38bdf8, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .cta-desc {
+      color: var(--text-muted);
+      font-size: 1.15rem;
+      max-width: 600px;
+    }
+
+    .cta-footer-small {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 0.5rem;
+    }
+
+    /* Footer */
+    footer {
+      padding: 4.5rem 2rem;
+      background: #040509;
+    }
+
+    .footer-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 2rem;
+    }
+
+    .footer-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .footer-brand-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .footer-text {
+      color: var(--text-dark);
+      font-size: 0.85rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 2.25rem;
+      list-style: none;
+    }
+
+    .footer-link a {
+      color: var(--text-dark);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+
+    .footer-link a:hover {
+      color: var(--text-main);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Glow Backgrounds -->
+  <div class="ambient-glows">
+    <div class="glow-1"></div>
+    <div class="glow-2"></div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="nav-container">
+      <a href="#" class="logo-wrapper">
+        <img src="./assets/logo.png" alt="Boarddy Logo" class="logo-img" />
+        <span class="logo-text">Boarddy</span>
+      </a>
+      <ul class="nav-links">
+        <li class="nav-link"><a href="#features">Features</a></li>
+        <li class="nav-link"><a href="#performance">Performance</a></li>
+        <li class="nav-link"><a href="#privacy">Privacy</a></li>
+        <li class="nav-link"><a href="https://github.com/boarddy-io/boarddy/blob/main/docs/github_setup_guide.md">Docs</a></li>
+        <li>
+          <a href="https://github.com/boarddy-io/boarddy" class="btn-github">
+            <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+            </svg>
+            GitHub
+          </a>
+        </li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div>
+      <span class="hero-tagline">Input & Memory Layer</span>
+      <h1 class="hero-title">The Input & Memory Layer<br><span>for Your Computer</span></h1>
+      
+      <ul class="hero-bullets">
+        <li class="hero-bullet-item">Your clipboard remembers.</li>
+        <li class="hero-bullet-item">Your keyboard learns.</li>
+        <li class="hero-bullet-item">Your computer finally stops forgetting.</li>
+      </ul>
+
+      <p class="hero-desc">
+        Boarddy helps you type faster, find anything you've copied, remember what matters, and stay in flow without breaking your train of thought.
+      </p>
+
+      <p class="hero-pitch-bold">Typing. Clipboard. Memory. Search. All in one place.</p>
+      
+      <div class="install-box">
+        <span class="install-command">winget install Boarddy</span>
+        <button class="btn-copy" id="copy-btn" title="Copy command">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
+        <span class="copied-msg" id="copied-badge">Copied!</span>
+      </div>
+
+      <div class="hero-buttons">
+        <a href="https://github.com/boarddy-io/boarddy/releases" class="btn-primary">Download for Windows</a>
+        <a href="https://github.com/boarddy-io/boarddy" class="btn-secondary">View on GitHub</a>
+      </div>
+    </div>
+
+    <!-- Interactive Simulator (Boarddy App Interface) -->
+    <div>
+      <div class="app-simulator">
+        <div class="sim-header">
+          <div class="sim-dots">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+          </div>
+          <span class="sim-title">Boarddy Desktop Simulator</span>
+          <span></span>
+        </div>
+        <div class="sim-body">
+          <!-- Simulator Sidebar -->
+          <div class="sim-sidebar">
+            <button class="sim-nav-btn active" onclick="switchTab('clipboard')">
+              📋 Clipboard History
+            </button>
+            <button class="sim-nav-btn" onclick="switchTab('quickpaste')">
+              ⚡ Quick Paste (PKS)
+            </button>
+            <button class="sim-nav-btn" onclick="switchTab('notes')">
+              📝 Memory Notes
+            </button>
+            <button class="sim-nav-btn" onclick="switchTab('dictionary')">
+              📖 Personal Dict
+            </button>
+            <button class="sim-nav-btn" onclick="switchTab('rules')">
+              ⚙️ Auto-Expansions
+            </button>
+            <button class="sim-nav-btn" onclick="switchTab('settings')">
+              ⚙️ System Settings
+            </button>
+          </div>
+
+          <!-- Simulator Content Area -->
+          <div class="sim-pane" id="sim-content">
+            <!-- Content injected dynamically by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hero Demo Typography Section -->
+  <section class="hero-demo-box">
+    <div class="hero-demo-container">
+      <div>
+        <h2 class="demo-step-title">Stop searching for things you already found.</h2>
+        <p class="demo-step-body">
+          You copied it yesterday. You typed it last week. You saved it somewhere. You know it exists. You just can't find it.
+        </p>
+        <p style="font-weight: 700; font-size: 1.15rem; color: var(--primary);">Boarddy fixes that.</p>
+      </div>
+      <div>
+        <div class="demo-story-wrapper">
+          <div class="demo-story-line active" id="story-1">You copied it yesterday.</div>
+          <div class="demo-story-line" id="story-2">You typed it last week.</div>
+          <div class="demo-story-line" id="story-3">You saved it somewhere.</div>
+          <div class="demo-story-line" id="story-4">You know it exists.</div>
+          <div class="demo-story-line" id="story-5">You just can't find it.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Problem Section -->
+  <section class="section-padding problem-section">
+    <div class="problem-wrapper">
+      <h2 class="section-title">Your computer has a memory problem.</h2>
+      <p class="section-subtitle">Not a speed problem. Not an AI problem. A memory problem.</p>
+      
+      <div class="problem-list">
+        <p style="font-weight: 700; color: #f87171; margin-bottom: 0.5rem;">Every single day:</p>
+        <div class="problem-item">
+          <span class="problem-icon">✕</span>
+          <span>You retype information you've already written.</span>
+        </div>
+        <div class="problem-item">
+          <span class="problem-icon">✕</span>
+          <span>You lose things you copied.</span>
+        </div>
+        <div class="problem-item">
+          <span class="problem-icon">✕</span>
+          <span>You search through chats for links.</span>
+        </div>
+        <div class="problem-item">
+          <span class="problem-icon">✕</span>
+          <span>You dig through notes for prompts.</span>
+        </div>
+        <div class="problem-item">
+          <span class="problem-icon">✕</span>
+          <span>You waste time looking for information you already had.</span>
+        </div>
+      </div>
+      
+      <p class="problem-footer-text">Modern computers are powerful. Yet they forget the things you use most.</p>
+    </div>
+  </section>
+
+  <!-- Solution Section -->
+  <section class="section-padding">
+    <div class="solution-wrapper">
+      <h2 class="section-title">Meet Boarddy.</h2>
+      <p class="section-subtitle">Boarddy quietly runs in the background and becomes the memory layer for your computer.</p>
+      
+      <div class="solution-bullets-grid">
+        <div class="solution-bullet-card">
+          <div class="solution-bullet-card-icon">📋</div>
+          <div class="solution-bullet-card-title">What you copy</div>
+        </div>
+        <div class="solution-bullet-card">
+          <div class="solution-bullet-card-icon">⌨️</div>
+          <div class="solution-bullet-card-title">What you type</div>
+        </div>
+        <div class="solution-bullet-card">
+          <div class="solution-bullet-card-icon">💾</div>
+          <div class="solution-bullet-card-title">What you save</div>
+        </div>
+        <div class="solution-bullet-card">
+          <div class="solution-bullet-card-icon">🔄</div>
+          <div class="solution-bullet-card-title">What you reuse</div>
+        </div>
+      </div>
+
+      <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto 1.5rem;">
+        Then helps you find it instantly. No folders. No organization system. No complicated setup.
+      </p>
+      <p class="solution-footer-bold">Just memory when you need it.</p>
+    </div>
+  </section>
+
+  <!-- Core Features Section -->
+  <section class="section-padding features-section" id="features">
+    <h2 class="section-title">Product Features</h2>
+    <p class="section-subtitle">Supercharge your daily interactions with clean local memory utilities.</p>
+    
+    <div class="grid-features">
+      <!-- Clipboard Memory -->
+      <div class="card-feature">
+        <div class="card-feature-icon">📋</div>
+        <h3 class="card-feature-title">Clipboard Memory</h3>
+        <p class="card-feature-desc">
+          Copy normally. Boarddy remembers. Find copied content from minutes, days, weeks, or months ago. Search it instantly. Never lose important text again.
+        </p>
+      </div>
+
+      <!-- Quick Paste -->
+      <div class="card-feature">
+        <div class="card-feature-icon">⚡</div>
+        <h3 class="card-feature-title">Quick Paste</h3>
+        <p class="card-feature-desc">
+          Press <code>Ctrl + Shift + V</code> to search your clipboard history instantly. Find exactly what you need. Paste it immediately. No mouse required. No context switching. No frustration.
+        </p>
+      </div>
+
+      <!-- Predictive Selection -->
+      <div class="card-feature">
+        <div class="card-feature-icon">🧠</div>
+        <h3 class="card-feature-title">Predictive Key Selection (PKS)</h3>
+        <p class="card-feature-desc">
+          Autocomplete built for speed. Type <code>comm</code>, and Boarddy shows options. Press <code>2</code> to instantly insert <code>community</code>. No arrow keys. No mouse. No interruption.
+        </p>
+      </div>
+
+      <!-- Adaptive Learning -->
+      <div class="card-feature">
+        <div class="card-feature-icon">📈</div>
+        <h3 class="card-feature-title">A Keyboard that Learns</h3>
+        <p class="card-feature-desc">
+          Boarddy adapts to how you write. The words and suggestions you use most automatically rise to the top. The longer you use it, the faster it becomes.
+        </p>
+      </div>
+
+      <!-- Personal Dictionary -->
+      <div class="card-feature">
+        <div class="card-feature-icon">📘</div>
+        <h3 class="card-feature-title">Personal Dictionary</h3>
+        <p class="card-feature-desc">
+          Stop fighting autocorrect. Add company names, product names, technical terms, and industry jargon. Boarddy learns your language instead of forcing its own.
+        </p>
+      </div>
+
+      <!-- Frictionless Notes -->
+      <div class="card-feature">
+        <div class="card-feature-icon">📝</div>
+        <h3 class="card-feature-title">Notes Without Friction</h3>
+        <p class="card-feature-desc">
+          Turn temporary information into permanent knowledge. Convert clipboard items into notes instantly. Capture research, ideas, prompts, meeting notes, and references before they disappear.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Keyboard-First Section -->
+  <section class="section-padding keyboard-section">
+    <h2 class="section-title">Built for keyboard-first people</h2>
+    <p class="section-subtitle">
+      Most software is designed around clicking. Boarddy is designed around thinking. Everything is optimized to keep your hands on the keyboard.
+    </p>
+
+    <div class="keyboard-grid">
+      <div class="keyboard-item-card">
+        <div style="font-size: 1.5rem;">⚡</div>
+        <div class="keyboard-card-title">Quick Paste</div>
+      </div>
+      <div class="keyboard-item-card">
+        <div style="font-size: 1.5rem;">🧠</div>
+        <div class="keyboard-card-title">Predictive Selection</div>
+      </div>
+      <div class="keyboard-item-card">
+        <div style="font-size: 1.5rem;">👆</div>
+        <div class="keyboard-card-title">Keyboard Gestures</div>
+      </div>
+      <div class="keyboard-item-card">
+        <div style="font-size: 1.5rem;">🗺️</div>
+        <div class="keyboard-card-title">Smart Navigation</div>
+      </div>
+      <div class="keyboard-item-card">
+        <div style="font-size: 1.5rem;">✍️</div>
+        <div class="keyboard-card-title">Fast Text Editing</div>
+      </div>
+    </div>
+
+    <p style="text-align: center; margin-top: 3rem; font-size: 1.1rem; color: var(--text-muted); font-weight: 500;">
+      Less reaching. Less interruption. <span style="color: var(--purple);">More flow.</span>
+    </p>
+  </section>
+
+  <!-- Performance Section -->
+  <section class="section-padding performance-section" id="performance">
+    <h2 class="section-title">Fast enough to disappear</h2>
+    <p class="section-subtitle">
+      Boarddy is designed to feel like part of your operating system. Productivity software should never slow you down.
+    </p>
+    
+    <div class="perf-metrics">
+      <div class="perf-card">
+        <div class="perf-val">&lt; 2s</div>
+        <div class="perf-label">Startup Time</div>
+        <div class="perf-desc">App launch and initialization.</div>
+      </div>
+      <div class="perf-card">
+        <div class="perf-val">&lt; 100ms</div>
+        <div class="perf-label">Clipboard Index</div>
+        <div class="perf-desc">Index captures instantly.</div>
+      </div>
+      <div class="perf-card">
+        <div class="perf-val">&lt; 200ms</div>
+        <div class="perf-label">Search Query</div>
+        <div class="perf-desc">Locates histories dynamically.</div>
+      </div>
+      <div class="perf-card">
+        <div class="perf-val">&lt; 50ms</div>
+        <div class="perf-label">Autocomplete</div>
+        <div class="perf-desc">Zero latency suggestion keys.</div>
+      </div>
+    </div>
+
+    <p style="text-align: center; color: var(--text-dark); font-size: 0.9rem; margin-top: 2.5rem; font-family: 'JetBrains Mono', monospace;">
+      * Runs with minimal CPU and memory footprint local resources.
+    </p>
+  </section>
+
+  <!-- Privacy Section -->
+  <section class="section-padding privacy-section" id="privacy">
+    <h2 class="section-title">Your memory belongs to you</h2>
+    <p class="section-subtitle">
+      Boarddy is local-first. We believe your input history should remain private, secure, and physically stored on your machine.
+    </p>
+
+    <div class="privacy-grid">
+      <div class="privacy-card">
+        <div class="privacy-icon">🔒</div>
+        <h3 class="card-feature-title">Local-First Storage</h3>
+        <p class="card-feature-desc">
+          Your database records, notes, dictionary terms, and settings stay completely on your physical storage drive.
+        </p>
+      </div>
+
+      <div class="privacy-card">
+        <div class="privacy-icon">🚫</div>
+        <h3 class="card-feature-title">No Telemetry</h3>
+        <p class="card-feature-desc">
+          We do not record, upload, sell, or track what you copy, type, or search. Zero hidden database transmission.
+        </p>
+      </div>
+
+      <div class="privacy-card">
+        <div class="privacy-icon">📡</div>
+        <h3 class="card-feature-title">Offline Native</h3>
+        <p class="card-feature-desc">
+          Boarddy functions perfectly without any active internet connection. No unnecessary cloud dependencies.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Developer Mode Section -->
+  <section class="section-padding developer-section">
+    <div class="developer-grid">
+      <div>
+        <span class="hero-tagline" style="color: var(--purple); background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.15);">Coming Later</span>
+        <h2 class="demo-step-title" style="margin-top: 1rem;">Developer Mode</h2>
+        <p class="demo-step-body" style="max-width: 550px;">
+          Inspired by the best ideas from Vim, Raycast, and VS Code. Built for developers who want modal speed and universal editing layouts without the steep learning curves.
+        </p>
+        
+        <div class="dev-list-features">
+          <div class="dev-feat-item">Keyboard motions</div>
+          <div class="dev-feat-item">Chord shortcuts</div>
+          <div class="dev-feat-item">Modal productivity</div>
+          <div class="dev-feat-item">Universal editing</div>
+          <div class="dev-feat-item">Macros support</div>
+          <div class="dev-feat-item">Command palette</div>
+        </div>
+      </div>
+      <div>
+        <div class="dev-code-box">
+          <div class="dev-code-line"><span class="dev-code-num">1</span><span class="dev-code-content"><span class="dev-code-comment">// Boarddy Modal Bindings</span></span></div>
+          <div class="dev-code-line"><span class="dev-code-num">2</span><span class="dev-code-content"><span class="dev-code-keyword">const</span> <span class="dev-code-function">mode</span> = <span class="dev-code-string">"DEVELOPER"</span>;</span></div>
+          <div class="dev-code-line"><span class="dev-code-num">3</span><span class="dev-code-content"></span></div>
+          <div class="dev-code-line"><span class="dev-code-num">4</span><span class="dev-code-content"><span class="dev-code-keyword">if</span> (event.key === <span class="dev-code-string">"Escape"</span>) {</span></div>
+          <div class="dev-code-line"><span class="dev-code-num">5</span><span class="dev-code-content">  enterNormalMode();</span></div>
+          <div class="dev-code-line"><span class="dev-code-num">6</span><span class="dev-code-content">} <span class="dev-code-keyword">else</span> <span class="dev-code-keyword">if</span> (command === <span class="dev-code-string">"dw"</span>) {</span></div>
+          <div class="dev-code-line"><span class="dev-code-num">7</span><span class="dev-code-content">  deleteWordUnderCursor();</span></div>
+          <div class="dev-code-line"><span class="dev-code-num">8</span><span class="dev-code-content">}</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Future Roadmap Section -->
+  <section class="section-padding future-section">
+    <div class="future-grid">
+      <div>
+        <div class="future-roadmap-box">
+          <div class="roadmap-list">
+            <div class="roadmap-item"><span class="roadmap-bullet"></span><span>Screenshot Memory</span></div>
+            <div class="roadmap-item"><span class="roadmap-bullet"></span><span>OCR Search (Extract text from images)</span></div>
+            <div class="roadmap-item"><span class="roadmap-bullet"></span><span>Voice Typing Engine</span></div>
+            <div class="roadmap-item"><span class="roadmap-bullet"></span><span>Cross-Device Encrypted Sync</span></div>
+            <div class="roadmap-item"><span class="roadmap-bullet"></span><span>Mobile Companion Application</span></div>
+            <div class="roadmap-item"><span class="roadmap-bullet"></span><span>AI Recall Integration</span></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h2 class="demo-step-title">The future of input</h2>
+        <p class="demo-step-body">
+          Boarddy starts as Clipboard Memory, Smart Autocomplete, and a Personal Dictionary. But that is only the beginning.
+        </p>
+        <p style="font-size: 1.05rem; font-weight: 500; color: var(--text-muted); line-height: 1.6;">
+          Our vision is simple: <strong>Anything you've copied, typed, captured, or saved should always be retrievable.</strong>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Social Proof Section -->
+  <section class="section-padding social-section">
+    <h2 class="section-title">Loved by Keyboard Power Users</h2>
+    <p class="section-subtitle">What early testers say about Boarddy.</p>
+
+    <div class="social-grid">
+      <!-- Quote 1 -->
+      <div class="social-card">
+        <p class="social-quote">"Quick Paste changed how I use my computer."</p>
+        <div class="social-author">
+          <div class="social-author-avatar" style="background: #38bdf8;">D</div>
+          <div class="social-author-info">
+            <div class="social-author-name">Alex M.</div>
+            <div class="social-author-title">Developer</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quote 2 -->
+      <div class="social-card">
+        <p class="social-quote">"I stopped sending links to myself."</p>
+        <div class="social-author">
+          <div class="social-author-avatar" style="background: #a78bfa;">F</div>
+          <div class="social-author-info">
+            <div class="social-author-name">Sarah K.</div>
+            <div class="social-author-title">Founder</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quote 3 -->
+      <div class="social-card">
+        <p class="social-quote">"I can finally find things I copied days ago."</p>
+        <div class="social-author">
+          <div class="social-author-avatar" style="background: #ec4899;">R</div>
+          <div class="social-author-info">
+            <div class="social-author-name">Michael L.</div>
+            <div class="social-author-title">Researcher</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quote 4 -->
+      <div class="social-card">
+        <p class="social-quote">"It feels like my computer suddenly became smarter."</p>
+        <div class="social-author">
+          <div class="social-author-avatar" style="background: #10b981;">U</div>
+          <div class="social-author-info">
+            <div class="social-author-name">David T.</div>
+            <div class="social-author-title">Power User</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="cta-section">
+    <div class="cta-container">
+      <h2 class="cta-title">Your computer forgets.<br><span>Boarddy doesn't.</span></h2>
+      <p class="cta-desc">
+        Join the next generation of users building a faster, smarter relationship with their computers.
+      </p>
+      
+      <p class="cta-footer-small">Typing. Clipboard. Memory. All connected.</p>
+
+      <div class="hero-buttons">
+        <a href="https://github.com/boarddy-io/boarddy/releases" class="btn-primary">Download for Windows</a>
+        <a href="https://github.com/boarddy-io/boarddy" class="btn-secondary">View on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span class="footer-brand-title">Boarddy</span>
+        <span style="font-size: 0.8rem; color: var(--text-dark);">The Input & Memory Layer for Your Computer.</span>
+      </div>
+      <div class="footer-text">
+        © 2026 Huna Inc. Built by Huna. Licensed under Huna Commercial License.
+      </div>
+      <ul class="footer-links">
+        <li class="footer-link"><a href="https://github.com/boarddy-io/boarddy">GitHub</a></li>
+        <li class="footer-link"><a href="https://github.com/boarddy-io/boarddy/blob/main/LICENSE.md">License</a></li>
+        <li class="footer-link"><a href="mailto:support@huna.io">Support Contact</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script>
+    // 1. Copy Command to Clipboard Toast Logic
+    const copyBtn = document.getElementById('copy-btn');
+    const badge = document.getElementById('copied-badge');
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText('winget install Boarddy');
+      badge.style.opacity = '1';
+      setTimeout(() => {
+        badge.style.opacity = '0';
+      }, 2000);
+    });
+
+    // 2. Animated typographic demo cycle
+    const storyIds = ['story-1', 'story-2', 'story-3', 'story-4', 'story-5'];
+    let currentStoryIndex = 0;
+    setInterval(() => {
+      document.getElementById(storyIds[currentStoryIndex]).classList.remove('active');
+      currentStoryIndex = (currentStoryIndex + 1) % storyIds.length;
+      document.getElementById(storyIds[currentStoryIndex]).classList.add('active');
+    }, 2800);
+
+    // 3. Interactive App Simulator Tab switching and state
+    let state = {
+      clipboard: [
+        { id: "c1", type: "text", app: "Terminal", text: "winget install Boarddy" },
+        { id: "c2", type: "code", app: "VS Code", text: "const fetchClipboard = async () => {\n  const res = await invoke('get_clipboard_entries');\n};" },
+        { id: "c3", type: "link", app: "Chrome", text: "https://boarddy-io.github.io/boarddy/" },
+        { id: "c4", type: "text", app: "Outlook", text: "support@huna.io" }
+      ],
+      pks: {
+        typed: "comm",
+        suggestions: [
+          { key: "1", word: "communication" },
+          { key: "2", word: "community" },
+          { key: "3", word: "commitment" }
+        ],
+        selected: ""
+      },
+      notes: [
+        { id: "n1", title: "Project Roadmap", text: "- Implement local PKS\n- Homebrew & Scoop distribution\n- Private security logs" },
+        { id: "n2", title: "Web Build command", text: "VITE_WEB_BUILD=true npm run build" }
+      ],
+      dictionary: ["Tauri", "Huna", "Autocomplete", "Keyboard"],
+      rules: [
+        { trigger: "teh", replace: "the" },
+        { trigger: "huna", replace: "Huna Inc." }
+      ],
+      settings: {
+        pks: true,
+        autocorrect: true,
+        doubleShift: true,
+        localOnly: true
+      }
+    };
+
+    let activeTab = "clipboard";
+
+    function switchTab(tab) {
+      activeTab = tab;
+      
+      // Update nav button active classes
+      const buttons = document.querySelectorAll('.sim-nav-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
+      
+      // Find matching button
+      const activeBtn = Array.from(buttons).find(btn => {
+        const text = btn.innerText.toLowerCase();
+        if (tab === 'quickpaste') return text.includes('quick');
+        return text.includes(tab.slice(0, 5));
+      });
+      if (activeBtn) activeBtn.classList.add('active');
+
+      renderTabContent();
+    }
+
+    function renderTabContent() {
+      const pane = document.getElementById('sim-content');
+      pane.innerHTML = "";
+
+      if (activeTab === "clipboard") {
+        pane.innerHTML = `
+          <div class="sim-pane-title">📋 Clipboard History</div>
+          <p class="sim-pane-desc">Your clipboard captures and categorizes items automatically.</p>
+          <input type="text" placeholder="Search clipboard..." class="sim-search-bar" id="clip-search" oninput="filterClips()" />
+          <div class="sim-list" id="clip-list">
+            ${renderClipItems(state.clipboard)}
+          </div>
+        `;
+      } 
+      else if (activeTab === "quickpaste") {
+        pane.innerHTML = `
+          <div class="sim-pane-title">⚡ Quick Paste (PKS Demo)</div>
+          <p class="sim-pane-desc">Summon autocomplete dynamically and select words without arrow keys.</p>
+          <div class="pks-simulator">
+            <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted);">Type text trigger:</div>
+            <div class="pks-input-block">
+              <span>${state.pks.typed}</span>
+              ${state.pks.selected ? `<span style="color: var(--primary); font-weight: bold;">${state.pks.selected}</span>` : '<span class="cursor-blink"></span>'}
+            </div>
+            
+            ${!state.pks.selected ? `
+              <div style="font-size: 0.72rem; color: var(--text-dark);">Autocomplete suggestions (Press corresponding number key or click):</div>
+              <div class="pks-suggestions">
+                ${state.pks.suggestions.map(s => `
+                  <div class="pks-suggestion-item" onclick="selectPks('${s.word}')">
+                    <span class="pks-sug-word">comm<span>${s.word.slice(4)}</span></span>
+                    <span class="pks-key-hint">${s.key}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `
+              <div style="color: var(--success); font-size: 0.78rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                ✓ Word injected successfully.
+                <button class="btn-sim-action" onclick="resetPks()">Reset Demo</button>
+              </div>
+            `}
+          </div>
+        `;
+      }
+      else if (activeTab === "notes") {
+        pane.innerHTML = `
+          <div class="sim-pane-title">
+            <span>📝 Memory Notes</span>
+            <button class="btn-sim-action" onclick="addNote()">+ New Note</button>
+          </div>
+          <p class="sim-pane-desc">Save snippets as permanent reference notes locally.</p>
+          <div class="sim-list" id="notes-list">
+            ${state.notes.map(n => `
+              <div class="sim-item" style="flex-direction: column; align-items: flex-start; gap: 0.35rem;">
+                <div style="font-weight: 700; color: var(--text-main); display: flex; justify-content: space-between; width: 100%;">
+                  <span>${n.title}</span>
+                  <span style="color: #ef4444; cursor: pointer;" onclick="deleteNote('${n.id}')">✕</span>
+                </div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); white-space: pre-line; width: 100%; border-top: 1px solid rgba(255,255,255,0.03); padding-top: 0.25rem;">${n.text}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } 
+      else if (activeTab === "dictionary") {
+        pane.innerHTML = `
+          <div class="sim-pane-title">📖 Personal Dictionary</div>
+          <p class="sim-pane-desc">Save custom abbreviations or words to teach them to autocomplete.</p>
+          <div class="sim-add-form">
+            <input type="text" placeholder="Add custom word..." class="sim-input" id="dict-input" />
+            <button class="btn-sim-action" onclick="addDictWord()">Add</button>
+          </div>
+          <div class="sim-list" style="flex-direction: row; flex-wrap: wrap; gap: 0.5rem;">
+            ${state.dictionary.map(word => `
+              <span class="sim-item" style="padding: 0.35rem 0.65rem; border-radius: 9999px;">
+                <span>${word}</span>
+                <span style="color: #ef4444; cursor: pointer; margin-left: 0.5rem; font-weight: bold;" onclick="removeDictWord('${word}')">✕</span>
+              </span>
+            `).join('')}
+          </div>
+        `;
+      } 
+      else if (activeTab === "rules") {
+        pane.innerHTML = `
+          <div class="sim-pane-title">⚡ Auto-Expansions</div>
+          <p class="sim-pane-desc">Define quick keyboard expansion triggers.</p>
+          <div class="sim-add-form">
+            <input type="text" placeholder="trigger" class="sim-input" id="rule-trigger" style="flex: 0.4;" />
+            <input type="text" placeholder="expansion" class="sim-input" id="rule-replace" />
+            <button class="btn-sim-action" onclick="addRule()">Create</button>
+          </div>
+          <div class="sim-list">
+            ${state.rules.map(r => `
+              <div class="sim-item">
+                <div>
+                  <code style="background: rgba(255,255,255,0.05); padding: 0.1rem 0.35rem; border-radius: 4px; font-family: 'JetBrains Mono', monospace; color: var(--primary); font-size: 0.72rem;">${r.trigger}</code>
+                  <span style="color: var(--text-dark); margin: 0 0.5rem;">→</span>
+                  <span style="color: var(--success); font-weight: 600;">${r.replace}</span>
+                </div>
+                <span style="color: #ef4444; cursor: pointer;" onclick="removeRule('${r.trigger}')">✕</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } 
+      else if (activeTab === "settings") {
+        pane.innerHTML = `
+          <div class="sim-pane-title">⚙️ App Configuration</div>
+          <p class="sim-pane-desc">Configure features to fit your workspace.</p>
+          <div class="sim-list">
+            <div class="sim-switch-item">
+              <div>
+                <div class="sim-switch-label">Predictive Key Selection (PKS)</div>
+                <div class="sim-switch-desc">Anticipate next keys and show shortcuts.</div>
+              </div>
+              <div class="sim-toggle ${state.settings.pks ? 'active' : ''}" onclick="toggleSetting('pks')"></div>
+            </div>
+            <div class="sim-switch-item">
+              <div>
+                <div class="sim-switch-label">Autocorrect & Expansions</div>
+                <div class="sim-switch-desc">Automatically expand snippet rules.</div>
+              </div>
+              <div class="sim-toggle ${state.settings.autocorrect ? 'active' : ''}" onclick="toggleSetting('autocorrect')"></div>
+            </div>
+            <div class="sim-switch-item">
+              <div>
+                <div class="sim-switch-label">Double-Shift summoning</div>
+                <div class="sim-switch-desc">Double-pressing Shift triggers quick search.</div>
+              </div>
+              <div class="sim-toggle ${state.settings.doubleShift ? 'active' : ''}" onclick="toggleSetting('doubleShift')"></div>
+            </div>
+            <div class="sim-switch-item">
+              <div>
+                <div class="sim-switch-label">100% Local Security Mode</div>
+                <div class="sim-switch-desc">Enforce offline database isolation constraints.</div>
+              </div>
+              <div class="sim-toggle ${state.settings.localOnly ? 'active' : ''}" onclick="toggleSetting('localOnly')"></div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function renderClipItems(clips) {
+      if (clips.length === 0) return `<div class="sim-pane-desc" style="text-align: center; margin-top: 1rem;">No results found</div>`;
+      return clips.map(item => `
+        <div class="sim-item">
+          <div style="display: flex; flex-direction: column; gap: 0.15rem; max-width: 80%;">
+            <div class="sim-item-content">${item.text}</div>
+            <div class="sim-item-meta">${item.app} • ${item.type}</div>
+          </div>
+          <button class="btn-sim-action" onclick="copySimItem('${item.text}')">Copy</button>
+        </div>
+      `).join('');
+    }
+
+    function filterClips() {
+      const q = document.getElementById('clip-search').value.toLowerCase();
+      const filtered = state.clipboard.filter(item => 
+        item.text.toLowerCase().includes(q) || item.app.toLowerCase().includes(q)
+      );
+      document.getElementById('clip-list').innerHTML = renderClipItems(filtered);
+    }
+
+    function copySimItem(text) {
+      navigator.clipboard.writeText(text);
+      alert(`[Mock Copy] Added to clipboard:\n"${text}"`);
+    }
+
+    // PKS Autocomplete Demo functions
+    function selectPks(word) {
+      state.pks.selected = word.slice(4);
+      renderTabContent();
+    }
+
+    function resetPks() {
+      state.pks.selected = "";
+      renderTabContent();
+    }
+
+    // Capture physical key presses in PKS tab
+    window.addEventListener('keydown', (e) => {
+      if (activeTab === "quickpaste" && !state.pks.selected) {
+        if (e.key === "1") selectPks("communication");
+        else if (e.key === "2") selectPks("community");
+        else if (e.key === "3") selectPks("commitment");
+      }
+    });
+
+    function addNote() {
+      const title = prompt("Enter Note Title:");
+      if (!title) return;
+      const text = prompt("Enter Note Content:");
+      if (text === null) return;
+      
+      state.notes.push({
+        id: "n" + (state.notes.length + 1),
+        title,
+        text
+      });
+      renderTabContent();
+    }
+
+    function deleteNote(id) {
+      state.notes = state.notes.filter(n => n.id !== id);
+      renderTabContent();
+    }
+
+    function addDictWord() {
+      const el = document.getElementById('dict-input');
+      const val = el.value.trim();
+      if (!val) return;
+      if (!state.dictionary.includes(val)) {
+        state.dictionary.push(val);
+      }
+      el.value = "";
+      renderTabContent();
+    }
+
+    function removeDictWord(word) {
+      state.dictionary = state.dictionary.filter(w => w !== word);
+      renderTabContent();
+    }
+
+    // Capture Autocomplete expansion additions in PKS
+    function addRule() {
+      const triggerEl = document.getElementById('rule-trigger');
+      const replaceEl = document.getElementById('rule-replace');
+      const trigger = triggerEl.value.trim();
+      const replace = replaceEl.value.trim();
+      
+      if (!trigger || !replace) return;
+      
+      state.rules.push({ trigger, replace });
+      triggerEl.value = "";
+      replaceEl.value = "";
+      renderTabContent();
+    }
+
+    function removeRule(trigger) {
+      state.rules = state.rules.filter(r => r.trigger !== trigger);
+      renderTabContent();
+    }
+
+    function toggleSetting(key) {
+      state.settings[key] = !state.settings[key];
+      renderTabContent();
+    }
+
+    // Initialize Content
+    switchTab("clipboard");
+  </script>
+</body>
+</html>
